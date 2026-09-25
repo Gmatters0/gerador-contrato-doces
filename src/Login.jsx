@@ -34,6 +34,7 @@ export default function Login({ aoEntrar }) {
   return (
     <main className="login">
       <form className="cartao login-cartao" onSubmit={enviar}>
+        <span className="eyebrow">Acesso restrito</span>
         <h1>Gerador de Contratos</h1>
         <p className="sub">Entre para preencher um novo contrato.</p>
 

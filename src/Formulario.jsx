@@ -179,7 +179,7 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
               ['entrega', 'Entrega dos doces no local'],
               ['montagem', 'Montagem da mesa no local'],
             ].map(([nome, rotulo]) => (
-              <div className={`servico ${erros[nome] ? 'tem-erro' : ''}`} key={nome}>
+              <div className={`servico ${form[nome].ativa ? 'ativo' : ''} ${erros[nome] ? 'tem-erro' : ''}`} key={nome}>
                 <label className="check">
                   <input type="checkbox" checked={form[nome].ativa} onChange={(e) => setServico(nome, 'ativa', e.target.checked)} />
                   <span>{rotulo}</span>
