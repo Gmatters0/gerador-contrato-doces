@@ -8,6 +8,6 @@ export default function handler(req, res) {
     return json(res, 200, { contratada: lerContratada() });
   } catch (e) {
     console.error(e.message);
-    return json(res, 500, { erro: 'Dados da contratada não configurados no servidor' });
+    return json(res, 500, { erro: e.message });
   }
 }

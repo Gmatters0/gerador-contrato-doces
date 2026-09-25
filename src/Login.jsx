@@ -16,7 +16,12 @@ export default function Login({ aoEntrar }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario, senha }),
       });
-      if (r.ok) return aoEntrar();
+      if (r.ok) {
+        // Login aceito: se os dados não carregarem, mostra o motivo em vez de ficar parado.
+        const motivo = await aoEntrar();
+        setErro(motivo ?? 'Login aceito, mas a sessão não foi mantida. Verifique se o navegador bloqueia cookies.');
+        return;
+      }
       const corpo = await r.json().catch(() => ({}));
       setErro(corpo.erro ?? 'Não foi possível entrar');
     } catch {
