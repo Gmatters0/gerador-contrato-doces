@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FORMA_PAGAMENTO_PADRAO, SUGESTOES_DOCES } from './lib/constantes.js';
+import { FORMA_PAGAMENTO_PADRAO } from './lib/constantes.js';
 import { subtotal, totais } from './lib/calculos.js';
 import { hojeISO } from './lib/extenso.js';
 import { brl, mascaraCpf, mascaraTelefone, parseReais } from './lib/formato.js';
@@ -129,9 +129,6 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
 
         <section className="cartao">
           <h2><b>2</b> Tipo de doces e quantidades</h2>
-          <datalist id="doces">
-            {SUGESTOES_DOCES.map((d) => <option key={d} value={d} />)}
-          </datalist>
 
           <div className="itens">
             {form.itens.map((it, idx) => {
@@ -139,7 +136,7 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
               return (
                 <div className="item" key={it.id}>
                   <Campo rotulo="Doce" erro={e.tipo} className="i-tipo">
-                    <input list="doces" value={it.tipo} onChange={(ev2) => setItem(it.id, 'tipo', ev2.target.value)} placeholder="Ex.: Trouxinha" aria-label="Doce" />
+                    <input value={it.tipo} onChange={(ev2) => setItem(it.id, 'tipo', ev2.target.value)} placeholder="Ex.: Trouxinha" aria-label="Doce" />
                   </Campo>
                   <Campo rotulo="Sabor / detalhe" className="i-sabor">
                     <input value={it.sabor} onChange={(ev2) => setItem(it.id, 'sabor', ev2.target.value)} placeholder="Ex.: de Coco, dourado" aria-label="Sabor ou detalhe" />
