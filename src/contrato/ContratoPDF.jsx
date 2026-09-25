@@ -234,10 +234,16 @@ export function ContratoPDF({ contrato: k }) {
                   <Text>Total dos doces</Text>
                   <Text style={s.negrito}>{k.produto.totais.doces}</Text>
                 </View>
-                {k.produto.totais.taxa && (
+                {k.produto.totais.entrega && (
                   <View style={s.totalLinha}>
-                    <Text>Entrega e montagem</Text>
-                    <Text style={s.negrito}>{k.produto.totais.taxa}</Text>
+                    <Text>Entrega</Text>
+                    <Text style={s.negrito}>{k.produto.totais.entrega}</Text>
+                  </View>
+                )}
+                {k.produto.totais.montagem && (
+                  <View style={s.totalLinha}>
+                    <Text>Montagem da mesa</Text>
+                    <Text style={s.negrito}>{k.produto.totais.montagem}</Text>
                   </View>
                 )}
                 <View style={s.totalFinal}>

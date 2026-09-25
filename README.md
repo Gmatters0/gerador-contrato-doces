@@ -24,7 +24,7 @@ npm test                     # cálculos, valores por extenso, CPF, validação
 | O quê | Onde |
 |---|---|
 | Dados da Contratada (nome, CPF, endereço…) | variável `CONTRATADA_JSON` (`.env.local` ou Vercel) |
-| Taxa de entrega (R$ 280), prazos de 15/10/20 dias, forma de pagamento padrão, sugestões de doces | `src/lib/constantes.js` |
+| Prazos de 15/10/20 dias, forma de pagamento padrão, sugestões de doces | `src/lib/constantes.js` |
 | Texto das cláusulas | `src/contrato/texto.js` |
 | Visual do PDF (cores, fontes, espaçamentos) | `src/contrato/ContratoPDF.jsx` |
 | Visual do formulário | `src/estilo.css` |

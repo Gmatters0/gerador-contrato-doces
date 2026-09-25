@@ -2,7 +2,6 @@ import {
   PRAZO_PAGAMENTO_DIAS,
   PRAZO_REAGENDAMENTO_DIAS,
   PRAZO_RESCISAO_DIAS,
-  TAXA_ENTREGA_CENTS,
 } from '../lib/constantes.js';
 import { dataCurta, dataLonga, dataPorExtenso, valorPorExtenso } from '../lib/extenso.js';
 import { brl } from '../lib/formato.js';
@@ -12,11 +11,25 @@ import { subtotal, totais } from '../lib/calculos.js';
 const b = (t) => `**${t}**`;
 const cl = (n, texto) => ({ rotulo: `Cláusula ${n}ª.`, texto });
 
+// Cláusula 10: descreve só o que foi contratado (entrega, montagem ou os dois).
+function clausulaServicos({ entrega, montagem }) {
+  const valor = (c) => `${b(brl(c))} (${valorPorExtenso(c)})`;
+  if (entrega != null && montagem != null) {
+    return `Tendo sido acordadas a entrega dos doces e a montagem da mesa no local do evento, serão cobradas a taxa de entrega no valor de ${valor(entrega)} e a taxa de montagem da mesa no valor de ${valor(montagem)}, já incluídas no valor total.`;
+  }
+  if (entrega != null) {
+    return `Tendo sido acordada a entrega dos doces no local do evento, será cobrada taxa de entrega no valor de ${valor(entrega)}, já incluída no valor total.`;
+  }
+  return `Tendo sido acordada a montagem da mesa de doces no local do evento, será cobrada taxa de montagem no valor de ${valor(montagem)}, já incluída no valor total.`;
+}
+
 // Junta os dados do formulário e da Contratada no conteúdo do contrato,
 // já com texto, valores e datas formatados. O PDF só desenha o resultado.
 export function montarContrato(dados, contratada, emissaoISO) {
-  const { contratante: c, itens, entrega, forma, evento } = dados;
-  const t = totais(itens, entrega);
+  const { contratante: c, itens, servicos, forma, evento } = dados;
+  const entrega = servicos.entrega != null;
+  const montagem = servicos.montagem != null;
+  const t = totais(itens, servicos);
   const entregaOuRetirada = entrega ? 'entrega' : 'retirada';
 
   const contratanteTexto =
@@ -95,15 +108,10 @@ export function montarContrato(dados, contratada, emissaoISO) {
     },
   ];
 
-  if (entrega) {
+  if (entrega || montagem) {
     secoesPosProduto.push({
       titulo: 'Condições gerais',
-      clausulas: [
-        cl(
-          10,
-          `Tendo sido acordadas a entrega e a montagem da mesa de doces no local do evento, será cobrada taxa de transporte, logística e montagem da mesa no valor de ${b(brl(TAXA_ENTREGA_CENTS))} (${valorPorExtenso(TAXA_ENTREGA_CENTS)}), já incluída no valor total.`,
-        ),
-      ],
+      clausulas: [cl(10, clausulaServicos(servicos))],
     });
   }
 
@@ -128,7 +136,8 @@ export function montarContrato(dados, contratada, emissaoISO) {
       linhas,
       totais: {
         doces: brl(t.doces),
-        taxa: entrega ? brl(t.taxa) : null,
+        entrega: entrega ? brl(t.entrega) : null,
+        montagem: montagem ? brl(t.montagem) : null,
         final: brl(t.final),
       },
     },

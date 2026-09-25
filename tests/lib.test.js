@@ -54,10 +54,12 @@ test('cpf e máscaras', () => {
   assert.equal(mascaraTelefone('1133334444'), '(11) 3333-4444');
 });
 
-test('totais reproduzem o contrato original (1.650 + 280 = 1.930)', () => {
+test('totais: doces + entrega + montagem, cada um opcional', () => {
   const itens = Array.from({ length: 6 }, () => ({ qtd: 50, precoCents: 550 }));
-  assert.deepEqual(totais(itens, true), { doces: 165000, taxa: 28000, final: 193000 });
-  assert.deepEqual(totais(itens, false), { doces: 165000, taxa: 0, final: 165000 });
+  assert.deepEqual(totais(itens, { entrega: 15000, montagem: 13000 }), { doces: 165000, entrega: 15000, montagem: 13000, final: 193000 });
+  assert.deepEqual(totais(itens, { entrega: 15000, montagem: null }), { doces: 165000, entrega: 15000, montagem: 0, final: 180000 });
+  assert.deepEqual(totais(itens, { entrega: 0, montagem: 13000 }).final, 178000);
+  assert.deepEqual(totais(itens), { doces: 165000, entrega: 0, montagem: 0, final: 165000 });
   assert.equal(brl(193000), 'R$ 1.930,00');
 });
 
@@ -69,7 +71,8 @@ test('nome de arquivo', () => {
 const formOk = () => ({
   contratante: { nome: 'Maria Souza', cpf: '529.982.247-25', rg: '', endereco: 'Rua A, 1', telefone: '(11) 99999-9999', email: '' },
   itens: [{ id: 1, tipo: 'Bombom', sabor: '', qtd: '50', preco: '5,50' }],
-  entrega: false,
+  entrega: { ativa: false, valor: '' },
+  montagem: { ativa: false, valor: '' },
   forma: 'Pagamento via transferência Pix.',
   evento: { data: '2026-11-21', hora: '15:30', horaEntrega: '12:00', local: 'Salão X' },
 });
@@ -78,6 +81,15 @@ test('validação', () => {
   const ok = validar(formOk(), '2026-09-10');
   assert.deepEqual(ok.erros, {});
   assert.equal(ok.dados.forma, 'Pagamento via transferência Pix');
+  assert.deepEqual(ok.dados.servicos, { entrega: null, montagem: null });
+
+  const s = formOk();
+  s.entrega = { ativa: true, valor: '150,00' };
+  s.montagem = { ativa: true, valor: '' };
+  const rs = validar(s, '2026-09-10');
+  assert.equal(rs.dados.servicos.entrega, 15000);
+  assert.equal(rs.erros.montagem, 'Informe o valor');
+  assert.equal(rs.erros.entrega, undefined);
 
   const f = formOk();
   f.contratante.cpf = '123';

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FORMA_PAGAMENTO_PADRAO, SUGESTOES_DOCES, TAXA_ENTREGA_CENTS } from './lib/constantes.js';
+import { FORMA_PAGAMENTO_PADRAO, SUGESTOES_DOCES } from './lib/constantes.js';
 import { subtotal, totais } from './lib/calculos.js';
 import { hojeISO } from './lib/extenso.js';
 import { brl, mascaraCpf, mascaraTelefone, parseReais } from './lib/formato.js';
@@ -10,7 +10,8 @@ function estadoInicial(novoId) {
   return {
     contratante: { nome: '', cpf: '', rg: '', endereco: '', telefone: '', email: '' },
     itens: [{ id: novoId(), tipo: '', sabor: '', qtd: '', preco: '' }],
-    entrega: false,
+    entrega: { ativa: false, valor: '' },
+    montagem: { ativa: false, valor: '' },
     forma: FORMA_PAGAMENTO_PADRAO,
     evento: { data: '', hora: '', horaEntrega: '', local: '' },
   };
@@ -56,7 +57,14 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
       precoCents: Number.isFinite(precoCents) ? precoCents : 0,
     };
   });
-  const t = totais(itensNumericos, form.entrega);
+  const valorServico = (s) => {
+    const cents = parseReais(s.valor);
+    return s.ativa && Number.isFinite(cents) ? cents : 0;
+  };
+  const t = totais(itensNumericos, { entrega: valorServico(form.entrega), montagem: valorServico(form.montagem) });
+  const setServico = (nome, campo, valor) =>
+    setForm((f) => ({ ...f, [nome]: { ...f[nome], [campo]: valor } }));
+  const entrega = form.entrega.ativa;
 
   async function enviar(e) {
     e.preventDefault();
@@ -169,19 +177,42 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
 
         <section className="cartao">
           <h2><b>3</b> Preço e pagamento</h2>
-          <label className="check">
-            <input type="checkbox" checked={form.entrega} onChange={(e) => setForm((f) => ({ ...f, entrega: e.target.checked }))} />
-            <span>
-              Entrega e montagem da mesa no local <em>(+ {brl(TAXA_ENTREGA_CENTS)})</em>
-            </span>
-          </label>
+          <div className="servicos">
+            {[
+              ['entrega', 'Entrega dos doces no local'],
+              ['montagem', 'Montagem da mesa no local'],
+            ].map(([nome, rotulo]) => (
+              <div className={`servico ${erros[nome] ? 'tem-erro' : ''}`} key={nome}>
+                <label className="check">
+                  <input type="checkbox" checked={form[nome].ativa} onChange={(e) => setServico(nome, 'ativa', e.target.checked)} />
+                  <span>{rotulo}</span>
+                </label>
+                {form[nome].ativa && (
+                  <div className="servico-valor">
+                    <div className="moeda">
+                      <span>R$</span>
+                      <input
+                        value={form[nome].valor}
+                        onChange={(e) => setServico(nome, 'valor', e.target.value.replace(/[^\d.,]/g, ''))}
+                        inputMode="decimal"
+                        placeholder="Valor"
+                        aria-label={`Valor: ${rotulo}`}
+                      />
+                    </div>
+                    {erros[nome] && <small className="erro">{erros[nome]}</small>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
           <Campo rotulo="Forma de pagamento" erro={erros.forma}>
             <input value={form.forma} onChange={(e) => setForm((f) => ({ ...f, forma: e.target.value }))} />
           </Campo>
 
           <dl className="resumo">
             <div><dt>Total dos doces</dt><dd>{brl(t.doces)}</dd></div>
-            {form.entrega && <div><dt>Entrega e montagem</dt><dd>{brl(t.taxa)}</dd></div>}
+            {form.entrega.ativa && <div><dt>Entrega</dt><dd>{brl(t.entrega)}</dd></div>}
+            {form.montagem.ativa && <div><dt>Montagem da mesa</dt><dd>{brl(t.montagem)}</dd></div>}
             <div className="final"><dt>Valor final</dt><dd>{brl(t.final)}</dd></div>
           </dl>
         </section>
@@ -195,7 +226,7 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
             <Campo rotulo="Horário do evento" erro={erros.hora}>
               <input type="time" value={ev.hora} onChange={(e) => setE('hora', e.target.value)} />
             </Campo>
-            <Campo rotulo={form.entrega ? 'Horário da entrega' : 'Horário da retirada'} erro={erros.horaEntrega}>
+            <Campo rotulo={entrega ? 'Horário da entrega' : 'Horário da retirada'} erro={erros.horaEntrega}>
               <input type="time" value={ev.horaEntrega} onChange={(e) => setE('horaEntrega', e.target.value)} />
             </Campo>
             <Campo rotulo="Local (nome e endereço)" erro={erros.local} className="span3">

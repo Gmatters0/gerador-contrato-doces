@@ -84,6 +84,11 @@ input::placeholder { color: #9aa3ab; }
 .check input { width: 18px; height: 18px; accent-color: var(--acento); flex: none; }
 .check em { color: var(--suave); font-style: normal; }
 
+.servicos { display: grid; gap: 10px; margin-bottom: 16px; }
+.servico { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 40px; }
+.servico .check { margin: 0; padding-top: 8px; }
+.servico-valor { width: 170px; flex: none; display: grid; gap: 4px; }
+
 .resumo { margin: 18px 0 0; display: grid; gap: 2px; max-width: 340px; margin-left: auto; font-variant-numeric: tabular-nums; }
 .resumo div { display: flex; justify-content: space-between; padding: 5px 12px; }
 .resumo dt, .resumo dd { margin: 0; }
@@ -135,6 +140,7 @@ button:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
   .i-tipo, .i-sabor { grid-column: span 2; }
   .remover { position: absolute; top: 2px; right: 2px; height: 32px; }
   .barra-total strong { font-size: 1.1rem; }
+  .servico-valor { width: 140px; }
   .botao.grande { padding: 12px 16px; font-size: 0.95rem; }
 }
 

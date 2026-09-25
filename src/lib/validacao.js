@@ -26,6 +26,19 @@ export function validar(form, hoje = hojeISO()) {
   });
   if (itens.length === 0) erros.itens = 'Adicione ao menos um doce';
 
+  // Entrega e montagem são independentes; se marcada, precisa de valor.
+  const servicos = {};
+  for (const nome of ['entrega', 'montagem']) {
+    const { ativa, valor } = form[nome];
+    if (!ativa) {
+      servicos[nome] = null;
+      continue;
+    }
+    const cents = parseReais(valor);
+    if (!Number.isFinite(cents) || cents <= 0) erros[nome] = 'Informe o valor';
+    servicos[nome] = cents;
+  }
+
   const ev = form.evento;
   if (!ev.data) erros.data = 'Informe a data';
   else if (ev.data < hoje) erros.data = 'A data não pode estar no passado';
@@ -37,7 +50,7 @@ export function validar(form, hoje = hojeISO()) {
   const dados = {
     contratante: Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v.trim()])),
     itens,
-    entrega: form.entrega,
+    servicos, // { entrega, montagem }: centavos, ou null se não contratado
     forma: form.forma.trim().replace(/[.\s]+$/, ''),
     evento: { ...ev, local: ev.local.trim() },
   };
