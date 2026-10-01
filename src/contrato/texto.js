@@ -4,7 +4,7 @@ import {
   PRAZO_RESCISAO_DIAS,
 } from '../lib/constantes.js';
 import { dataCurta, dataLonga, dataPorExtenso, valorPorExtenso } from '../lib/extenso.js';
-import { brl } from '../lib/formato.js';
+import { brl, formatarPercentual } from '../lib/formato.js';
 import { subtotal, totais } from '../lib/calculos.js';
 
 // Trechos entre ** ** saem em negrito no PDF.
@@ -26,10 +26,10 @@ function clausulaServicos({ entrega, montagem }) {
 // Junta os dados do formulário e da Contratada no conteúdo do contrato,
 // já com texto, valores e datas formatados. O PDF só desenha o resultado.
 export function montarContrato(dados, contratada, emissaoISO) {
-  const { contratante: c, itens, servicos, forma, evento } = dados;
+  const { contratante: c, itens, servicos, forma, evento, descontoPct } = dados;
   const entrega = servicos.entrega != null;
   const montagem = servicos.montagem != null;
-  const t = totais(itens, servicos);
+  const t = totais(itens, servicos, descontoPct);
   const entregaOuRetirada = entrega ? 'entrega' : 'retirada';
 
   const contratanteTexto =
@@ -86,8 +86,11 @@ export function montarContrato(dados, contratada, emissaoISO) {
         cl(
           6,
           `O serviço contratado no presente termo será remunerado pela quantia de ${b(brl(t.final))} ` +
-            `(${valorPorExtenso(t.final)}), devendo ser paga até ${PRAZO_PAGAMENTO_DIAS} dias antes da data da ${entregaOuRetirada}. ` +
-            `Forma de pagamento acordada: ${forma}.`,
+            `(${valorPorExtenso(t.final)}), devendo ser paga até ${PRAZO_PAGAMENTO_DIAS} dias antes da data da ${entregaOuRetirada}.` +
+            (t.desconto > 0
+              ? ` Sobre o valor total foi aplicado desconto de ${formatarPercentual(descontoPct)}%, no valor de ${b(brl(t.desconto))}.`
+              : '') +
+            ` Forma de pagamento acordada: ${forma}.`,
         ),
         cl(7, 'Em caso de inadimplemento por parte da contratante quanto ao pagamento do serviço a ser prestado, esta perderá o valor da reserva e o contrato será cancelado.'),
       ],
@@ -138,6 +141,8 @@ export function montarContrato(dados, contratada, emissaoISO) {
         doces: brl(t.doces),
         entrega: entrega ? brl(t.entrega) : null,
         montagem: montagem ? brl(t.montagem) : null,
+        descontoLinha:
+          t.desconto > 0 ? { rotulo: `Desconto (${formatarPercentual(descontoPct)}%)`, valor: `- ${brl(t.desconto)}` } : null,
         final: brl(t.final),
       },
     },

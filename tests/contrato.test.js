@@ -3,13 +3,15 @@ import assert from 'node:assert/strict';
 import { montarContrato } from '../src/contrato/texto.js';
 
 const contratada = { nome: 'Ana Exemplo', rg: '1', cpf: '529.982.247-25', cnpj: '2', endereco: 'Rua X', telefone: '(11) 90000-0000', email: 'a@b.c', cidade: 'Guarulhos' };
-const dados = (servicos) => ({
+const dados = (servicos, descontoPct = 0) => ({
   contratante: { nome: 'Maria Souza', cpf: '529.982.247-25', rg: '', endereco: 'Rua A, 1', telefone: '(11) 99999-9999', email: '' },
   itens: [{ tipo: 'Bombom', sabor: '', qtd: 50, precoCents: 550 }],
   servicos,
+  descontoPct,
   forma: 'Pagamento via transferência Pix',
   evento: { data: '2026-11-21', hora: '15:30', horaEntrega: '12:00', local: 'Salão X' },
 });
+const clausula6 = (k) => k.secoesPosProduto[0].clausulas[0].texto;
 const clausula10 = (k) => k.secoesPosProduto.flatMap((s) => s.clausulas).find((c) => c.rotulo === 'Cláusula 10ª.');
 
 test('sem entrega nem montagem: sem Cláusula 10 e sem linhas de taxa', () => {
@@ -44,4 +46,26 @@ test('entrega e montagem: valores separados somam no valor final', () => {
   assert.match(clausula10(k).texto, /R\$ 150,00.*R\$ 130,00/);
   assert.equal(k.produto.totais.final, 'R$ 555,00');
   assert.match(k.secoes[0].clausulas[1].texto, /será entregue no local do evento/);
+});
+
+test('sem desconto: sem menção na Cláusula 6 e sem linha de desconto nos totais', () => {
+  const k = montarContrato(dados({ entrega: null, montagem: null }), contratada, '2026-09-10');
+  assert.doesNotMatch(clausula6(k), /desconto/);
+  assert.equal(k.produto.totais.descontoLinha, null);
+  assert.equal(k.produto.totais.final, 'R$ 275,00');
+});
+
+test('com desconto: aparece na Cláusula 6, nos totais e reduz o valor final', () => {
+  // 275,00 (doces) + 150,00 (entrega) = 425,00; 10% de desconto = 42,50 -> final 382,50
+  const k = montarContrato(dados({ entrega: 15000, montagem: null }, 10), contratada, '2026-09-10');
+  assert.match(clausula6(k), /desconto de 10%, no valor de \*\*R\$ 42,50\*\*/);
+  assert.deepEqual(k.produto.totais.descontoLinha, { rotulo: 'Desconto (10%)', valor: '- R$ 42,50' });
+  assert.equal(k.produto.totais.final, 'R$ 382,50');
+});
+
+test('desconto com percentual fracionário', () => {
+  const k = montarContrato(dados({ entrega: null, montagem: null }, 12.5), contratada, '2026-09-10');
+  // 275,00 com 12,5% de desconto = 34,375 -> arredonda para 34,38
+  assert.deepEqual(k.produto.totais.descontoLinha, { rotulo: 'Desconto (12,5%)', valor: '- R$ 34,38' });
+  assert.equal(k.produto.totais.final, 'R$ 240,62');
 });

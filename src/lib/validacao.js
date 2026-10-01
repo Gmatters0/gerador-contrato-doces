@@ -1,4 +1,4 @@
-import { cpfValido, parseReais } from './formato.js';
+import { cpfValido, parsePercentual, parseReais } from './formato.js';
 import { hojeISO } from './extenso.js';
 
 // Recebe o estado bruto do formulário. Devolve { erros, dados }.
@@ -39,6 +39,14 @@ export function validar(form, hoje = hojeISO()) {
     servicos[nome] = cents;
   }
 
+  // Desconto: percentual opcional aplicado sobre o valor total.
+  let descontoPct = 0;
+  if (form.desconto.ativa) {
+    const pct = parsePercentual(form.desconto.percentual);
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) erros.desconto = 'Informe um percentual entre 0 e 100';
+    else descontoPct = pct;
+  }
+
   const ev = form.evento;
   if (!ev.data) erros.data = 'Informe a data';
   else if (ev.data < hoje) erros.data = 'A data não pode estar no passado';
@@ -51,6 +59,7 @@ export function validar(form, hoje = hojeISO()) {
     contratante: Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v.trim()])),
     itens,
     servicos, // { entrega, montagem }: centavos, ou null se não contratado
+    descontoPct, // percentual (0 a 100), ou 0 se não aplicado
     forma: form.forma.trim().replace(/[.\s]+$/, ''),
     evento: { ...ev, local: ev.local.trim() },
   };

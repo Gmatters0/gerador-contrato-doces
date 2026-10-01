@@ -17,6 +17,18 @@ export function parseReais(texto) {
   return Number.isFinite(n) ? Math.round(n * 100) : NaN;
 }
 
+// "10" | "12,5" | "12.5" -> número (percentual). Inválido -> NaN.
+export function parsePercentual(texto) {
+  const s = String(texto ?? '').replace(',', '.').replace(/[^\d.]/g, '');
+  if (!s) return NaN;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+export function formatarPercentual(n) {
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+}
+
 const so = (v) => String(v ?? '').replace(/\D/g, '');
 
 export function mascaraCpf(v) {

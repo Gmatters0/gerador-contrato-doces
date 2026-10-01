@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { inteiroPorExtenso, valorPorExtenso, dataPorExtenso, dataCurta, dataLonga } from '../src/lib/extenso.js';
-import { parseReais, cpfValido, mascaraCpf, mascaraTelefone, brl, nomeDeArquivo } from '../src/lib/formato.js';
+import { parseReais, parsePercentual, cpfValido, mascaraCpf, mascaraTelefone, brl, nomeDeArquivo } from '../src/lib/formato.js';
 import { totais } from '../src/lib/calculos.js';
 import { validar } from '../src/lib/validacao.js';
 
@@ -45,6 +45,15 @@ test('parse de reais', () => {
   assert.ok(Number.isNaN(parseReais('abc')));
 });
 
+test('parse de percentual', () => {
+  assert.equal(parsePercentual('10'), 10);
+  assert.equal(parsePercentual('12,5'), 12.5);
+  assert.equal(parsePercentual('12.5'), 12.5);
+  assert.equal(parsePercentual('100'), 100);
+  assert.ok(Number.isNaN(parsePercentual('')));
+  assert.ok(Number.isNaN(parsePercentual('abc')));
+});
+
 test('cpf e máscaras', () => {
   assert.equal(cpfValido('529.982.247-25'), true);
   assert.equal(cpfValido('111.111.111-11'), false);
@@ -56,11 +65,21 @@ test('cpf e máscaras', () => {
 
 test('totais: doces + entrega + montagem, cada um opcional', () => {
   const itens = Array.from({ length: 6 }, () => ({ qtd: 50, precoCents: 550 }));
-  assert.deepEqual(totais(itens, { entrega: 15000, montagem: 13000 }), { doces: 165000, entrega: 15000, montagem: 13000, final: 193000 });
-  assert.deepEqual(totais(itens, { entrega: 15000, montagem: null }), { doces: 165000, entrega: 15000, montagem: 0, final: 180000 });
+  assert.deepEqual(totais(itens, { entrega: 15000, montagem: 13000 }), { doces: 165000, entrega: 15000, montagem: 13000, desconto: 0, final: 193000 });
+  assert.deepEqual(totais(itens, { entrega: 15000, montagem: null }), { doces: 165000, entrega: 15000, montagem: 0, desconto: 0, final: 180000 });
   assert.deepEqual(totais(itens, { entrega: 0, montagem: 13000 }).final, 178000);
-  assert.deepEqual(totais(itens), { doces: 165000, entrega: 0, montagem: 0, final: 165000 });
+  assert.deepEqual(totais(itens), { doces: 165000, entrega: 0, montagem: 0, desconto: 0, final: 165000 });
   assert.equal(brl(193000), 'R$ 1.930,00');
+});
+
+test('totais: desconto percentual sobre doces + entrega + montagem', () => {
+  const itens = Array.from({ length: 6 }, () => ({ qtd: 50, precoCents: 550 }));
+  // 1.930,00 com 10% de desconto = 1.737,00
+  assert.deepEqual(totais(itens, { entrega: 15000, montagem: 13000 }, 10), {
+    doces: 165000, entrega: 15000, montagem: 13000, desconto: 19300, final: 173700,
+  });
+  assert.equal(totais(itens, {}, 50).final, 82500);
+  assert.equal(totais(itens, {}, 0).final, 165000);
 });
 
 test('nome de arquivo', () => {
@@ -73,6 +92,7 @@ const formOk = () => ({
   itens: [{ id: 1, tipo: 'Bombom', sabor: '', qtd: '50', preco: '5,50' }],
   entrega: { ativa: false, valor: '' },
   montagem: { ativa: false, valor: '' },
+  desconto: { ativa: false, percentual: '' },
   forma: 'Pagamento via transferência Pix.',
   evento: { data: '2026-11-21', hora: '15:30', horaEntrega: '12:00', local: 'Salão X' },
 });
@@ -82,6 +102,7 @@ test('validação', () => {
   assert.deepEqual(ok.erros, {});
   assert.equal(ok.dados.forma, 'Pagamento via transferência Pix');
   assert.deepEqual(ok.dados.servicos, { entrega: null, montagem: null });
+  assert.equal(ok.dados.descontoPct, 0);
 
   const s = formOk();
   s.entrega = { ativa: true, valor: '150,00' };
@@ -90,6 +111,18 @@ test('validação', () => {
   assert.equal(rs.dados.servicos.entrega, 15000);
   assert.equal(rs.erros.montagem, 'Informe o valor');
   assert.equal(rs.erros.entrega, undefined);
+
+  const d = formOk();
+  d.desconto = { ativa: true, percentual: '10' };
+  assert.equal(validar(d, '2026-09-10').dados.descontoPct, 10);
+
+  const dInvalido = formOk();
+  dInvalido.desconto = { ativa: true, percentual: '150' };
+  assert.equal(validar(dInvalido, '2026-09-10').erros.desconto, 'Informe um percentual entre 0 e 100');
+
+  const dVazio = formOk();
+  dVazio.desconto = { ativa: true, percentual: '' };
+  assert.equal(validar(dVazio, '2026-09-10').erros.desconto, 'Informe um percentual entre 0 e 100');
 
   const f = formOk();
   f.contratante.cpf = '123';

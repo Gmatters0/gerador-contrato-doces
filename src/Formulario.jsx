@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { FORMA_PAGAMENTO_PADRAO } from './lib/constantes.js';
 import { subtotal, totais } from './lib/calculos.js';
 import { hojeISO } from './lib/extenso.js';
-import { brl, mascaraCpf, mascaraTelefone, parseReais } from './lib/formato.js';
+import { brl, formatarPercentual, mascaraCpf, mascaraTelefone, parsePercentual, parseReais } from './lib/formato.js';
 import { validar } from './lib/validacao.js';
 import { gerarEBaixar } from './contrato/gerar.js';
 
@@ -12,6 +12,7 @@ function estadoInicial(novoId) {
     itens: [{ id: novoId(), tipo: '', sabor: '', qtd: '', preco: '' }],
     entrega: { ativa: false, valor: '' },
     montagem: { ativa: false, valor: '' },
+    desconto: { ativa: false, percentual: '' },
     forma: FORMA_PAGAMENTO_PADRAO,
     evento: { data: '', hora: '', horaEntrega: '', local: '' },
   };
@@ -61,9 +62,19 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
     const cents = parseReais(s.valor);
     return s.ativa && Number.isFinite(cents) ? cents : 0;
   };
-  const t = totais(itensNumericos, { entrega: valorServico(form.entrega), montagem: valorServico(form.montagem) });
+  const descontoPctLive = (() => {
+    if (!form.desconto.ativa) return 0;
+    const pct = parsePercentual(form.desconto.percentual);
+    return Number.isFinite(pct) ? pct : 0;
+  })();
+  const t = totais(
+    itensNumericos,
+    { entrega: valorServico(form.entrega), montagem: valorServico(form.montagem) },
+    descontoPctLive,
+  );
   const setServico = (nome, campo, valor) =>
     setForm((f) => ({ ...f, [nome]: { ...f[nome], [campo]: valor } }));
+  const setDesconto = (campo, valor) => setForm((f) => ({ ...f, desconto: { ...f.desconto, [campo]: valor } }));
   const entrega = form.entrega.ativa;
 
   async function enviar(e) {
@@ -201,6 +212,28 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
                 )}
               </div>
             ))}
+
+            <div className={`servico ${form.desconto.ativa ? 'ativo' : ''} ${erros.desconto ? 'tem-erro' : ''}`}>
+              <label className="check">
+                <input type="checkbox" checked={form.desconto.ativa} onChange={(e) => setDesconto('ativa', e.target.checked)} />
+                <span>Aplicar desconto no valor final</span>
+              </label>
+              {form.desconto.ativa && (
+                <div className="servico-valor">
+                  <div className="moeda pct">
+                    <input
+                      value={form.desconto.percentual}
+                      onChange={(e) => setDesconto('percentual', e.target.value.replace(/[^\d,]/g, ''))}
+                      inputMode="decimal"
+                      placeholder="Ex.: 10"
+                      aria-label="Percentual de desconto"
+                    />
+                    <span>%</span>
+                  </div>
+                  {erros.desconto && <small className="erro">{erros.desconto}</small>}
+                </div>
+              )}
+            </div>
           </div>
           <Campo rotulo="Forma de pagamento" erro={erros.forma}>
             <input value={form.forma} onChange={(e) => setForm((f) => ({ ...f, forma: e.target.value }))} />
@@ -210,6 +243,9 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
             <div><dt>Total dos doces</dt><dd>{brl(t.doces)}</dd></div>
             {form.entrega.ativa && <div><dt>Entrega</dt><dd>{brl(t.entrega)}</dd></div>}
             {form.montagem.ativa && <div><dt>Montagem da mesa</dt><dd>{brl(t.montagem)}</dd></div>}
+            {form.desconto.ativa && t.desconto > 0 && (
+              <div><dt>Desconto ({formatarPercentual(descontoPctLive)}%)</dt><dd>- {brl(t.desconto)}</dd></div>
+            )}
             <div className="final"><dt>Valor final</dt><dd>{brl(t.final)}</dd></div>
           </dl>
         </section>

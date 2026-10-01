@@ -246,6 +246,12 @@ export function ContratoPDF({ contrato: k }) {
                     <Text style={s.negrito}>{k.produto.totais.montagem}</Text>
                   </View>
                 )}
+                {k.produto.totais.descontoLinha && (
+                  <View style={s.totalLinha}>
+                    <Text>{k.produto.totais.descontoLinha.rotulo}</Text>
+                    <Text style={s.negrito}>{k.produto.totais.descontoLinha.valor}</Text>
+                  </View>
+                )}
                 <View style={s.totalFinal}>
                   <Text style={s.totalFinalTexto}>Valor final</Text>
                   <Text style={s.totalFinalTexto}>{k.produto.totais.final}</Text>

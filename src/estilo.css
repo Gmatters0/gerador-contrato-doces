@@ -115,6 +115,8 @@ input::placeholder { color: #9aa4b1; }
   color: var(--suave); font-size: 0.85rem; font-weight: 500; pointer-events: none;
 }
 .moeda input { padding-left: 38px; }
+.moeda.pct span { left: auto; right: 13px; }
+.moeda.pct input { padding-left: 13px; padding-right: 30px; }
 .i-sub { display: grid; gap: 6px; align-content: start; }
 .rotulo-sub { font-size: 0.83rem; font-weight: 600; color: #2c3746; }
 .i-sub strong { height: 44px; display: flex; align-items: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
