@@ -1,5 +1,6 @@
 import { cpfValido, parsePercentual, parseReais } from './formato.js';
 import { hojeISO } from './extenso.js';
+import { totais } from './calculos.js';
 
 // Recebe o estado bruto do formulário. Devolve { erros, dados }.
 // `dados` só é confiável quando `erros` está vazio.
@@ -47,6 +48,21 @@ export function validar(form, hoje = hojeISO()) {
     else descontoPct = pct;
   }
 
+  // Desconto da degustação: valor fixo em R$, abatido depois do desconto percentual.
+  let degustacao = null;
+  if (form.degustacao.ativa) {
+    const cents = parseReais(form.degustacao.valor);
+    if (!Number.isFinite(cents) || cents <= 0) erros.degustacao = 'Informe o valor';
+    else degustacao = cents;
+  }
+
+  // O desconto total não pode passar do valor do contrato (só dá para checar com itens válidos).
+  const valoresComErro = Object.keys(erros).some((k) => /^(item:|itens$|entrega$|montagem$|desconto$)/.test(k));
+  if (degustacao != null && !valoresComErro) {
+    const t = totais(itens, servicos, descontoPct);
+    if (degustacao > t.final) erros.degustacao = 'O desconto não pode ser maior que o valor do contrato';
+  }
+
   const ev = form.evento;
   if (!ev.data) erros.data = 'Informe a data';
   else if (ev.data < hoje) erros.data = 'A data não pode estar no passado';
@@ -60,6 +76,7 @@ export function validar(form, hoje = hojeISO()) {
     itens,
     servicos, // { entrega, montagem }: centavos, ou null se não contratado
     descontoPct, // percentual (0 a 100), ou 0 se não aplicado
+    degustacao, // desconto fixo da degustação em centavos, ou null
     forma: form.forma.trim().replace(/[.\s]+$/, ''),
     evento: { ...ev, local: ev.local.trim() },
   };

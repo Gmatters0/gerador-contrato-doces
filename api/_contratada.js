@@ -18,3 +18,14 @@ export function lerContratada() {
   }
   return c;
 }
+
+// Assinatura da Contratada (opcional): data URL de uma imagem PNG/JPG.
+// Sem a variável, o contrato sai com o espaço de assinatura em branco.
+export function lerAssinatura() {
+  const v = process.env.ASSINATURA_DATA_URL;
+  if (!v) return null;
+  if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(v)) {
+    throw new Error('ASSINATURA_DATA_URL deve ser "data:image/png;base64,..." ou "data:image/jpeg;base64,..." em uma linha, sem aspas');
+  }
+  return v;
+}

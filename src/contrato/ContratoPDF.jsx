@@ -1,4 +1,4 @@
-import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 // Sem hifenização: evita quebras estranhas no meio de nomes e valores.
 Font.registerHyphenationCallback((palavra) => [palavra]);
@@ -104,7 +104,10 @@ const s = StyleSheet.create({
   },
 
   fecho: { marginTop: 16, textAlign: 'center', fontStyle: 'italic', color: COR.cacau },
-  assinaturas: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 30 },
+  assinaturas: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  // Espaço fixo acima da linha: a assinatura da Contratada entra aqui, o da Contratante fica em branco.
+  assEspaco: { height: 46, width: '100%', alignItems: 'center', justifyContent: 'flex-end' },
+  assImagem: { maxHeight: 44, maxWidth: 170, objectFit: 'contain' },
   assinatura: { width: '44%', alignItems: 'center' },
   assLinha: { width: '100%', borderTopWidth: 0.8, borderTopColor: COR.cacau, marginBottom: 4 },
   assNome: { fontWeight: 700, fontSize: 9, textAlign: 'center', color: COR.cacau },
@@ -252,6 +255,12 @@ export function ContratoPDF({ contrato: k }) {
                     <Text style={s.negrito}>{k.produto.totais.descontoLinha.valor}</Text>
                   </View>
                 )}
+                {k.produto.totais.degustacaoLinha && (
+                  <View style={s.totalLinha}>
+                    <Text>{k.produto.totais.degustacaoLinha.rotulo}</Text>
+                    <Text style={s.negrito}>{k.produto.totais.degustacaoLinha.valor}</Text>
+                  </View>
+                )}
                 <View style={s.totalFinal}>
                   <Text style={s.totalFinalTexto}>Valor final</Text>
                   <Text style={s.totalFinalTexto}>{k.produto.totais.final}</Text>
@@ -279,6 +288,7 @@ export function ContratoPDF({ contrato: k }) {
           <View style={s.assinaturas}>
             {k.assinaturas.map((a) => (
               <View key={a.papel} style={s.assinatura}>
+                <View style={s.assEspaco}>{a.imagem && <Image src={a.imagem} style={s.assImagem} />}</View>
                 <View style={s.assLinha} />
                 <Text style={s.assNome}>{a.nome}</Text>
                 <Text style={s.assPapel}>

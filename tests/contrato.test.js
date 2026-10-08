@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { montarContrato } from '../src/contrato/texto.js';
 
 const contratada = { nome: 'Ana Exemplo', rg: '1', cpf: '529.982.247-25', cnpj: '2', endereco: 'Rua X', telefone: '(11) 90000-0000', email: 'a@b.c', cidade: 'Guarulhos' };
-const dados = (servicos, descontoPct = 0) => ({
+const dados = (servicos, descontoPct = 0, degustacao = null) => ({
   contratante: { nome: 'Maria Souza', cpf: '529.982.247-25', rg: '', endereco: 'Rua A, 1', telefone: '(11) 99999-9999', email: '' },
   itens: [{ tipo: 'Bombom', sabor: '', qtd: 50, precoCents: 550 }],
   servicos,
   descontoPct,
+  degustacao,
   forma: 'Pagamento via transferência Pix',
   evento: { data: '2026-11-21', hora: '15:30', horaEntrega: '12:00', local: 'Salão X' },
 });
@@ -68,4 +69,35 @@ test('desconto com percentual fracionário', () => {
   // 275,00 com 12,5% de desconto = 34,375 -> arredonda para 34,38
   assert.deepEqual(k.produto.totais.descontoLinha, { rotulo: 'Desconto (12,5%)', valor: '- R$ 34,38' });
   assert.equal(k.produto.totais.final, 'R$ 240,62');
+});
+
+test('degustação: aparece na Cláusula 6 e nos totais, depois do desconto percentual', () => {
+  // 275,00 + 150,00 = 425,00; -10% (42,50) = 382,50; -degustação 50,00 = 332,50
+  const k = montarContrato(dados({ entrega: 15000, montagem: null }, 10, 5000), contratada, '2026-09-10');
+  assert.match(clausula6(k), /desconto da degustação no valor de \*\*R\$ 50,00\*\* \(cinquenta reais\)/);
+  assert.deepEqual(k.produto.totais.degustacaoLinha, { rotulo: 'Desconto da degustação', valor: '- R$ 50,00' });
+  assert.equal(k.produto.totais.final, 'R$ 332,50');
+  assert.match(clausula6(k), /remunerado pela quantia de \*\*R\$ 332,50\*\*/);
+});
+
+test('degustação sozinha, sem desconto percentual', () => {
+  const k = montarContrato(dados({ entrega: null, montagem: null }, 0, 5000), contratada, '2026-09-10');
+  assert.equal(k.produto.totais.descontoLinha, null);
+  assert.equal(k.produto.totais.final, 'R$ 225,00');
+  assert.doesNotMatch(clausula6(k), /desconto de/);
+});
+
+test('sem degustação: sem linha nem menção', () => {
+  const k = montarContrato(dados({ entrega: null, montagem: null }), contratada, '2026-09-10');
+  assert.equal(k.produto.totais.degustacaoLinha, null);
+  assert.doesNotMatch(clausula6(k), /degustação/);
+});
+
+test('assinatura da contratada: usa a imagem quando existe e fica em branco quando não', () => {
+  const sem = montarContrato(dados({ entrega: null, montagem: null }), contratada, '2026-09-10');
+  assert.equal(sem.assinaturas[0].imagem, null);
+  assert.equal(sem.assinaturas[1].imagem, undefined);
+  const com = montarContrato(dados({ entrega: null, montagem: null }), { ...contratada, assinatura: 'data:image/png;base64,AAAA' }, '2026-09-10');
+  assert.equal(com.assinaturas[0].imagem, 'data:image/png;base64,AAAA');
+  assert.equal(com.assinaturas[1].imagem, undefined); // contratante nunca recebe imagem
 });

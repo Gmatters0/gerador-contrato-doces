@@ -26,10 +26,10 @@ function clausulaServicos({ entrega, montagem }) {
 // Junta os dados do formulário e da Contratada no conteúdo do contrato,
 // já com texto, valores e datas formatados. O PDF só desenha o resultado.
 export function montarContrato(dados, contratada, emissaoISO) {
-  const { contratante: c, itens, servicos, forma, evento, descontoPct } = dados;
+  const { contratante: c, itens, servicos, forma, evento, descontoPct, degustacao } = dados;
   const entrega = servicos.entrega != null;
   const montagem = servicos.montagem != null;
-  const t = totais(itens, servicos, descontoPct);
+  const t = totais(itens, servicos, descontoPct, degustacao ?? 0);
   const entregaOuRetirada = entrega ? 'entrega' : 'retirada';
 
   const contratanteTexto =
@@ -90,6 +90,9 @@ export function montarContrato(dados, contratada, emissaoISO) {
             (t.desconto > 0
               ? ` Sobre o valor total foi aplicado desconto de ${formatarPercentual(descontoPct)}%, no valor de ${b(brl(t.desconto))}.`
               : '') +
+            (t.degustacao > 0
+              ? ` Foi concedido desconto da degustação no valor de ${b(brl(t.degustacao))} (${valorPorExtenso(t.degustacao)}).`
+              : '') +
             ` Forma de pagamento acordada: ${forma}.`,
         ),
         cl(7, 'Em caso de inadimplemento por parte da contratante quanto ao pagamento do serviço a ser prestado, esta perderá o valor da reserva e o contrato será cancelado.'),
@@ -143,6 +146,8 @@ export function montarContrato(dados, contratada, emissaoISO) {
         montagem: montagem ? brl(t.montagem) : null,
         descontoLinha:
           t.desconto > 0 ? { rotulo: `Desconto (${formatarPercentual(descontoPct)}%)`, valor: `- ${brl(t.desconto)}` } : null,
+        degustacaoLinha:
+          t.degustacao > 0 ? { rotulo: 'Desconto da degustação', valor: `- ${brl(t.degustacao)}` } : null,
         final: brl(t.final),
       },
     },
@@ -150,7 +155,7 @@ export function montarContrato(dados, contratada, emissaoISO) {
     evento: { titulo: 'Sobre o evento', texto: eventoTexto },
     fecho: `${contratada.cidade}, ${dataLonga(emissaoISO)}`,
     assinaturas: [
-      { papel: 'Contratada', nome: contratada.nome, cpf: contratada.cpf },
+      { papel: 'Contratada', nome: contratada.nome, cpf: contratada.cpf, imagem: contratada.assinatura ?? null },
       { papel: 'Contratante', nome: c.nome, cpf: c.cpf },
     ],
     rodape: `Contrato de prestação de serviços · ${c.nome}`,

@@ -65,10 +65,10 @@ test('cpf e máscaras', () => {
 
 test('totais: doces + entrega + montagem, cada um opcional', () => {
   const itens = Array.from({ length: 6 }, () => ({ qtd: 50, precoCents: 550 }));
-  assert.deepEqual(totais(itens, { entrega: 15000, montagem: 13000 }), { doces: 165000, entrega: 15000, montagem: 13000, desconto: 0, final: 193000 });
-  assert.deepEqual(totais(itens, { entrega: 15000, montagem: null }), { doces: 165000, entrega: 15000, montagem: 0, desconto: 0, final: 180000 });
+  assert.deepEqual(totais(itens, { entrega: 15000, montagem: 13000 }), { doces: 165000, entrega: 15000, montagem: 13000, desconto: 0, degustacao: 0, final: 193000 });
+  assert.deepEqual(totais(itens, { entrega: 15000, montagem: null }), { doces: 165000, entrega: 15000, montagem: 0, desconto: 0, degustacao: 0, final: 180000 });
   assert.deepEqual(totais(itens, { entrega: 0, montagem: 13000 }).final, 178000);
-  assert.deepEqual(totais(itens), { doces: 165000, entrega: 0, montagem: 0, desconto: 0, final: 165000 });
+  assert.deepEqual(totais(itens), { doces: 165000, entrega: 0, montagem: 0, desconto: 0, degustacao: 0, final: 165000 });
   assert.equal(brl(193000), 'R$ 1.930,00');
 });
 
@@ -76,10 +76,20 @@ test('totais: desconto percentual sobre doces + entrega + montagem', () => {
   const itens = Array.from({ length: 6 }, () => ({ qtd: 50, precoCents: 550 }));
   // 1.930,00 com 10% de desconto = 1.737,00
   assert.deepEqual(totais(itens, { entrega: 15000, montagem: 13000 }, 10), {
-    doces: 165000, entrega: 15000, montagem: 13000, desconto: 19300, final: 173700,
+    doces: 165000, entrega: 15000, montagem: 13000, desconto: 19300, degustacao: 0, final: 173700,
   });
   assert.equal(totais(itens, {}, 50).final, 82500);
   assert.equal(totais(itens, {}, 0).final, 165000);
+});
+
+test('totais: degustação (valor fixo) é abatida depois do desconto percentual', () => {
+  const itens = Array.from({ length: 6 }, () => ({ qtd: 50, precoCents: 550 }));
+  assert.equal(totais(itens, {}, 0, 10000).final, 155000);
+  // 1.650,00 - 10% (165,00) = 1.485,00; - 100,00 de degustação = 1.385,00
+  const t = totais(itens, {}, 10, 10000);
+  assert.equal(t.desconto, 16500);
+  assert.equal(t.degustacao, 10000);
+  assert.equal(t.final, 138500);
 });
 
 test('nome de arquivo', () => {
@@ -93,6 +103,7 @@ const formOk = () => ({
   entrega: { ativa: false, valor: '' },
   montagem: { ativa: false, valor: '' },
   desconto: { ativa: false, percentual: '' },
+  degustacao: { ativa: false, valor: '' },
   forma: 'Pagamento via transferência Pix.',
   evento: { data: '2026-11-21', hora: '15:30', horaEntrega: '12:00', local: 'Salão X' },
 });
@@ -103,6 +114,7 @@ test('validação', () => {
   assert.equal(ok.dados.forma, 'Pagamento via transferência Pix');
   assert.deepEqual(ok.dados.servicos, { entrega: null, montagem: null });
   assert.equal(ok.dados.descontoPct, 0);
+  assert.equal(ok.dados.degustacao, null);
 
   const s = formOk();
   s.entrega = { ativa: true, valor: '150,00' };
@@ -123,6 +135,19 @@ test('validação', () => {
   const dVazio = formOk();
   dVazio.desconto = { ativa: true, percentual: '' };
   assert.equal(validar(dVazio, '2026-09-10').erros.desconto, 'Informe um percentual entre 0 e 100');
+
+  const g = formOk();
+  g.degustacao = { ativa: true, valor: '50,00' };
+  assert.equal(validar(g, '2026-09-10').dados.degustacao, 5000);
+
+  const gVazia = formOk();
+  gVazia.degustacao = { ativa: true, valor: '' };
+  assert.equal(validar(gVazia, '2026-09-10').erros.degustacao, 'Informe o valor');
+
+  // contrato de R$ 275,00: degustação maior que isso é recusada
+  const gGrande = formOk();
+  gGrande.degustacao = { ativa: true, valor: '300,00' };
+  assert.equal(validar(gGrande, '2026-09-10').erros.degustacao, 'O desconto não pode ser maior que o valor do contrato');
 
   const f = formOk();
   f.contratante.cpf = '123';

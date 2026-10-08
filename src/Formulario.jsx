@@ -13,6 +13,7 @@ function estadoInicial(novoId) {
     entrega: { ativa: false, valor: '' },
     montagem: { ativa: false, valor: '' },
     desconto: { ativa: false, percentual: '' },
+    degustacao: { ativa: false, valor: '' },
     forma: FORMA_PAGAMENTO_PADRAO,
     evento: { data: '', hora: '', horaEntrega: '', local: '' },
   };
@@ -71,10 +72,12 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
     itensNumericos,
     { entrega: valorServico(form.entrega), montagem: valorServico(form.montagem) },
     descontoPctLive,
+    valorServico(form.degustacao),
   );
   const setServico = (nome, campo, valor) =>
     setForm((f) => ({ ...f, [nome]: { ...f[nome], [campo]: valor } }));
   const setDesconto = (campo, valor) => setForm((f) => ({ ...f, desconto: { ...f.desconto, [campo]: valor } }));
+  const setDegustacao = (campo, valor) => setForm((f) => ({ ...f, degustacao: { ...f.degustacao, [campo]: valor } }));
   const entrega = form.entrega.ativa;
 
   async function enviar(e) {
@@ -234,6 +237,28 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
                 </div>
               )}
             </div>
+
+            <div className={`servico ${form.degustacao.ativa ? 'ativo' : ''} ${erros.degustacao ? 'tem-erro' : ''}`}>
+              <label className="check">
+                <input type="checkbox" checked={form.degustacao.ativa} onChange={(e) => setDegustacao('ativa', e.target.checked)} />
+                <span>Desconto da degustação</span>
+              </label>
+              {form.degustacao.ativa && (
+                <div className="servico-valor">
+                  <div className="moeda">
+                    <span>R$</span>
+                    <input
+                      value={form.degustacao.valor}
+                      onChange={(e) => setDegustacao('valor', e.target.value.replace(/[^\d.,]/g, ''))}
+                      inputMode="decimal"
+                      placeholder="Valor"
+                      aria-label="Valor do desconto da degustação"
+                    />
+                  </div>
+                  {erros.degustacao && <small className="erro">{erros.degustacao}</small>}
+                </div>
+              )}
+            </div>
           </div>
           <Campo rotulo="Forma de pagamento" erro={erros.forma}>
             <input value={form.forma} onChange={(e) => setForm((f) => ({ ...f, forma: e.target.value }))} />
@@ -245,6 +270,9 @@ function Corpo({ contratada, aoSair, aoConcluir }) {
             {form.montagem.ativa && <div><dt>Montagem da mesa</dt><dd>{brl(t.montagem)}</dd></div>}
             {form.desconto.ativa && t.desconto > 0 && (
               <div><dt>Desconto ({formatarPercentual(descontoPctLive)}%)</dt><dd>- {brl(t.desconto)}</dd></div>
+            )}
+            {form.degustacao.ativa && t.degustacao > 0 && (
+              <div><dt>Desconto da degustação</dt><dd>- {brl(t.degustacao)}</dd></div>
             )}
             <div className="final"><dt>Valor final</dt><dd>{brl(t.final)}</dd></div>
           </dl>
